@@ -1,0 +1,176 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: src/web
+        run: npm run lint
+      
+      - name: Check formatting with Prettier
+        working-directory: src/web
+        run: npx prettier --check "src/**/*.{ts,tsx,css}"
+      
+      - name: Run TypeScript type checking
+        working-directory: src/web
+        run: npm run typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: src/web
+        run: npm run test:coverage
+      
+      - name: Check coverage thresholds
+        working-directory: src/web
+        run: npx jest --coverage --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":85,"statements":85}}' --passWithNoTests
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: src/web/coverage
+          retention-days: 14
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Set environment variables
+        run: echo "VITE_API_BASE_URL=https://api.parkhub.com" >> src/web/.env.production
+      
+      - name: Build application
+        working-directory: src/web
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: src/web/dist
+          retention-days: 7
+
+  validate:
+    name: Validate Build
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      
+      - name: Install serve
+        run: npm install -g serve
+      
+      - name: Serve application
+        run: serve -s dist &
+        shell: bash
+      
+      - name: Validate build artifacts
+        run: node -e "const fs = require('fs'); if (!fs.existsSync('dist/index.html')) process.exit(1)"
+      
+      - name: Run basic health check
+        run: "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 | grep 200"
+
+  security_scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run npm audit
+        working-directory: src/web
+        run: npm audit --production
+
+  ci_success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [validate, security_scan]
+    steps:
+      - name: CI Pipeline Completed
+        run: echo "CI pipeline completed successfully at $(date)"
+      
+      - name: Ready for Deployment
+        run: echo "Build artifacts are ready for deployment"
