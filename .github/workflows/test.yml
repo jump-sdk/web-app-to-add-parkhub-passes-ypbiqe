@@ -1,0 +1,168 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'src/web/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'src/web/**' ]
+  workflow_dispatch:
+
+jobs:
+  unit_tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run unit tests
+        working-directory: src/web
+        run: npm test -- --testPathPattern="(utils|hooks|services)" --coverage
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results
+          path: src/web/coverage
+          retention-days: 7
+
+  component_tests:
+    name: Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run component tests
+        working-directory: src/web
+        run: npm test -- --testPathPattern="components" --coverage
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: component-test-results
+          path: src/web/coverage
+          retention-days: 7
+
+  integration_tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+      
+      - name: Run integration tests
+        working-directory: src/web
+        run: npm test -- --testPathPattern="pages|App" --coverage
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: src/web/coverage
+          retention-days: 7
+
+  coverage_report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit_tests, component_tests, integration_tests]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      
+      - name: Download unit test results
+        uses: actions/download-artifact@v3
+        with:
+          name: unit-test-results
+          path: coverage/unit
+      
+      - name: Download component test results
+        uses: actions/download-artifact@v3
+        with:
+          name: component-test-results
+          path: coverage/component
+      
+      - name: Download integration test results
+        uses: actions/download-artifact@v3
+        with:
+          name: integration-test-results
+          path: coverage/integration
+      
+      - name: Install coverage tools
+        run: npm install -g nyc
+      
+      - name: Merge coverage reports
+        run: nyc merge coverage coverage/merged-coverage.json
+      
+      - name: Generate HTML report
+        run: nyc report --reporter=html --reporter=text --reporter=lcov --temp-dir coverage/merged-coverage.json
+      
+      - name: Upload merged coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: merged-coverage-report
+          path: coverage/
+          retention-days: 7
+      
+      - name: Check coverage thresholds
+        run: |
+          node -e "
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json'));
+            const total = summary.total;
+            if (total.statements.pct < 80 || total.branches.pct < 75 || total.functions.pct < 80 || total.lines.pct < 80) {
+              console.error('Coverage thresholds not met');
+              process.exit(1);
+            } else {
+              console.log('Coverage thresholds met');
+            }
+          "
+
+  test_summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [coverage_report]
+    if: always()
+    steps:
+      - name: Summarize test results
+        run: echo "Testing completed at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
