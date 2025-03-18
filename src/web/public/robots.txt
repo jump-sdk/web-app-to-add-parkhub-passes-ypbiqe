@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: 
+
+# Allow all crawlers complete access as this is an administrative tool
+# that will likely be protected by other means (like API key authentication)
+# rather than relying on robots.txt for security
