@@ -1,0 +1,150 @@
+/**
+ * ParkHub Passes Creation Web Application
+ * Global CSS Variables
+ * 
+ * This file defines the core design tokens and theming variables for the application.
+ * It establishes a consistent design system by centralizing color values, spacing,
+ * typography, breakpoints, and other UI constants that are used throughout the application.
+ */
+
+:root {
+  /* 
+   * Colors
+   * Based on the specified color palette in Technical Specifications 7.7.1
+   */
+  --color-primary: #1976d2;      /* Primary actions, headers */
+  --color-secondary: #00796b;    /* Secondary actions */
+  --color-success: #43a047;      /* Success states, confirmations */
+  --color-warning: #ffa000;      /* Warning states, cautions */
+  --color-error: #d32f2f;        /* Error states, destructive actions */
+  --color-neutral: #757575;      /* Text, icons */
+  --color-light-gray: #f5f5f5;   /* Backgrounds, dividers */
+  --color-white: #ffffff;        /* Card backgrounds, text on dark backgrounds */
+  
+  /* Color variants for different states */
+  --color-primary-light: #4791db;
+  --color-primary-dark: #115293;
+  --color-primary-transparent: rgba(25, 118, 210, 0.1);
+  
+  --color-secondary-light: #48a999;
+  --color-secondary-dark: #004c40;
+  --color-secondary-transparent: rgba(0, 121, 107, 0.1);
+  
+  /* 
+   * Typography
+   * Based on the specified typography in Technical Specifications 7.7.2
+   */
+  --font-family-primary: 'Roboto', Arial, sans-serif;
+  
+  --font-size-base: 16px;        /* Base font size for the application */
+  --font-size-sm: 14px;          /* Small text, secondary information */
+  --font-size-md: 16px;          /* Body text, general content */
+  --font-size-lg: 18px;          /* Subheadings */
+  --font-size-xl: 24px;          /* Headings, page titles */
+  
+  --font-weight-regular: 400;    /* Regular text */
+  --font-weight-medium: 500;     /* Emphasis, headings, buttons */
+  --font-weight-bold: 700;       /* Strong emphasis */
+  
+  --line-height-sm: 1.2;         /* Headings */
+  --line-height-md: 1.5;         /* Body text */
+  --line-height-lg: 1.8;         /* Readable paragraphs */
+  
+  /* 
+   * Spacing
+   * A consistent spacing system based on 8px increments
+   */
+  --spacing-unit: 8px;           /* Base spacing unit */
+  --spacing-xs: 4px;             /* Extra small spacing */
+  --spacing-sm: 8px;             /* Small spacing */
+  --spacing-md: 16px;            /* Medium spacing */
+  --spacing-lg: 24px;            /* Large spacing */
+  --spacing-xl: 32px;            /* Extra large spacing */
+  
+  /* 
+   * Borders
+   * Border radius for consistent corner rounding
+   */
+  --border-radius-sm: 4px;       /* Buttons, small elements */
+  --border-radius-md: 8px;       /* Cards, panels */
+  --border-radius-lg: 16px;      /* Large UI elements */
+  
+  --border-width-standard: 1px;  /* Standard border width */
+  --border-width-emphasis: 2px;  /* Emphasized borders, focus states */
+  
+  /* 
+   * Shadows
+   * Consistent elevation system using shadows
+   */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);        /* Subtle elevation */
+  --shadow-md: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);        /* Medium elevation */
+  --shadow-lg: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);      /* High elevation */
+  
+  /* 
+   * Transitions
+   * Standardized animation durations
+   */
+  --transition-speed-fast: 150ms;       /* Quick interactions */
+  --transition-speed-normal: 300ms;     /* Standard transitions */
+  --transition-speed-slow: 500ms;       /* Elaborate animations */
+  
+  --transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);  /* Material Design standard easing */
+  
+  /* 
+   * Breakpoints
+   * Based on Technical Specifications 7.3.3 for responsive design
+   */
+  --breakpoint-xs: 576px;        /* Mobile phones */
+  --breakpoint-sm: 768px;        /* Large phones, small tablets */
+  --breakpoint-md: 992px;        /* Tablets, small laptops */
+  --breakpoint-lg: 1200px;       /* Laptops, desktops */
+  --breakpoint-xl: 1400px;       /* Large desktops */
+  
+  /* 
+   * Z-index
+   * Standardized stacking order
+   */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  
+  /* 
+   * Form elements
+   * Consistent form styling
+   */
+  --input-height: 40px;          /* Standard height for inputs */
+  --input-padding: var(--spacing-sm) var(--spacing-md);
+  --input-border-color: rgba(0, 0, 0, 0.23);
+  --input-focus-border-color: var(--color-primary);
+  
+  /* 
+   * Focus visible
+   * Consistent focus styling for accessibility
+   */
+  --focus-outline-width: 2px;
+  --focus-outline-color: var(--color-primary);
+  --focus-outline-offset: 2px;
+  
+  /* 
+   * Container widths
+   * Maximum widths for content containers
+   */
+  --container-max-width-sm: 540px;
+  --container-max-width-md: 720px;
+  --container-max-width-lg: 960px;
+  --container-max-width-xl: 1140px;
+}
+
+/* Media query variables cannot be set as CSS variables, provided as a comment reference */
+/* 
+ * Media Queries
+ * @media (min-width: 576px) { ... } - Small devices and up
+ * @media (min-width: 768px) { ... } - Medium devices and up
+ * @media (min-width: 992px) { ... } - Large devices and up
+ * @media (min-width: 1200px) { ... } - X-Large devices and up
+ * @media (min-width: 1400px) { ... } - XX-Large devices and up
+ */
