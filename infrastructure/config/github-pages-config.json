@@ -1,0 +1,68 @@
+{
+  "repository": {
+    "name": "parkhub-passes-creation",
+    "owner": "jump"
+  },
+  "branch": "gh-pages",
+  "environments": [
+    {
+      "name": "development",
+      "path": "dev",
+      "url": "https://jump.github.io/parkhub-passes-creation/dev",
+      "variables": {
+        "VITE_API_BASE_URL": "https://api-dev.parkhub.com",
+        "VITE_API_LANDMARK_ID": "7fc72127-c601-46f3-849b-0fdea9f370ae",
+        "VITE_ENABLE_DEBUG_LOGGING": "true",
+        "VITE_ENABLE_MOCK_API": "true"
+      },
+      "protection": {
+        "required_reviewers": 0,
+        "wait_timer": 0
+      }
+    },
+    {
+      "name": "staging",
+      "path": "staging",
+      "url": "https://jump.github.io/parkhub-passes-creation/staging",
+      "variables": {
+        "VITE_API_BASE_URL": "https://api-staging.parkhub.com",
+        "VITE_API_LANDMARK_ID": "7fc72127-c601-46f3-849b-0fdea9f370ae",
+        "VITE_ENABLE_DEBUG_LOGGING": "true",
+        "VITE_ENABLE_MOCK_API": "false"
+      },
+      "protection": {
+        "required_reviewers": 1,
+        "wait_timer": 10
+      }
+    },
+    {
+      "name": "production",
+      "path": "",
+      "url": "https://parkhub-passes.jump.com",
+      "variables": {
+        "VITE_API_BASE_URL": "https://api.parkhub.com",
+        "VITE_API_LANDMARK_ID": "7fc72127-c601-46f3-849b-0fdea9f370ae",
+        "VITE_ENABLE_DEBUG_LOGGING": "false",
+        "VITE_ENABLE_MOCK_API": "false"
+      },
+      "protection": {
+        "required_reviewers": 2,
+        "wait_timer": 60
+      }
+    }
+  ],
+  "customDomain": {
+    "enabled": true,
+    "name": "parkhub-passes.jump.com",
+    "enforceHttps": true
+  },
+  "cacheControl": {
+    "html": "public, max-age=0, must-revalidate",
+    "assets": "public, max-age=31536000, immutable"
+  },
+  "buildSettings": {
+    "source": "src/web",
+    "output": "dist",
+    "buildCommand": "npm run build"
+  }
+}
