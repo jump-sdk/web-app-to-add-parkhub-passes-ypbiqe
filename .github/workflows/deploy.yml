@@ -1,0 +1,211 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/web/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: 'development'
+      force_rebuild:
+        description: 'Force rebuild instead of using cached artifacts'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'workflow_dispatch' && inputs.force_rebuild == true || github.event_name == 'push'"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: src/web
+        run: npm ci
+
+      - name: Set environment variables
+        run: |
+          node -e "const fs = require('fs'); 
+          const config = require('./infrastructure/config/github-pages-config.json'); 
+          const env = config.environments.find(e => e.name === '${{ github.event.inputs.environment || 'development' }}'); 
+          const envVars = Object.entries(env.variables).map(([key, value]) => `${key}=${value}`).join('\n'); 
+          fs.writeFileSync('src/web/.env.production', envVars);"
+
+      - name: Build application
+        working-directory: src/web
+        run: npm run build
+
+      - name: Generate deployment info
+        working-directory: src/web/dist
+        run: |
+          echo "{\"version\":\"${{ github.sha }}\",\"environment\":\"${{ github.event.inputs.environment || 'development' }}\",\"timestamp\":\"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\"}" > deployment-info.json
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: src/web/dist
+          retention-days: 7
+
+  validate:
+    name: Validate Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: "github.event_name == 'workflow_dispatch' && inputs.force_rebuild == true || github.event_name == 'push'"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install serve
+        run: npm install -g serve
+
+      - name: Serve application
+        run: serve -s dist &
+        shell: bash
+
+      - name: Validate build artifacts
+        run: |
+          node -e "const fs = require('fs'); 
+          if (!fs.existsSync('dist/index.html')) process.exit(1)"
+
+      - name: Run basic health check
+        run: "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 | grep 200"
+
+  deploy_development:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: "github.event.inputs.environment == 'development' || github.event_name == 'push'"
+    environment:
+      name: development
+      url: https://jump.github.io/parkhub-passes-creation/dev
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: dist
+          target-folder: dev
+          clean: true
+          commit-message: "Deploy to development environment [skip ci]"
+
+      - name: Verify deployment
+        run: "sleep 30 && curl -s -o /dev/null -w '%{http_code}' https://jump.github.io/parkhub-passes-creation/dev/ | grep 200"
+
+  deploy_staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: "github.event.inputs.environment == 'staging'"
+    environment:
+      name: staging
+      url: https://jump.github.io/parkhub-passes-creation/staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: dist
+          target-folder: staging
+          clean: true
+          commit-message: "Deploy to staging environment [skip ci]"
+
+      - name: Verify deployment
+        run: "sleep 30 && curl -s -o /dev/null -w '%{http_code}' https://jump.github.io/parkhub-passes-creation/staging/ | grep 200"
+
+  deploy_production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: "github.event.inputs.environment == 'production'"
+    environment:
+      name: production
+      url: https://parkhub-passes.jump.com
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Create CNAME file
+        run: "echo 'parkhub-passes.jump.com' > dist/CNAME"
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: dist
+          target-folder: ''
+          clean: true
+          commit-message: "Deploy to production environment [skip ci]"
+
+      - name: Verify deployment
+        run: "sleep 60 && curl -s -o /dev/null -w '%{http_code}' https://parkhub-passes.jump.com/ | grep 200"
+
+  deployment_summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy_development, deploy_staging, deploy_production]
+    if: always()
+    steps:
+      - name: Summarize deployment
+        run: "echo \"Deployment to ${{ github.event.inputs.environment || 'development' }} completed at $(date -u +'%Y-%m-%dT%H:%M:%SZ')\""
+
+      - name: Deployment URLs
+        run: |
+          echo "Development: https://jump.github.io/parkhub-passes-creation/dev/"
+          echo "Staging: https://jump.github.io/parkhub-passes-creation/staging/"
+          echo "Production: https://parkhub-passes.jump.com/"
